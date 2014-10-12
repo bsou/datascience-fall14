@@ -1,0 +1,218 @@
+SQL Assignment Submission
+
+=== 1
+
+create view NumberOfMedals as
+with T as (
+select p.country_id as country_id, medal 
+from players  p, results r 
+where p.player_id = r.player_id), U as (
+select country_id, count(medal) as number_of_medals
+from T
+group by country_id)
+select name as country_name, number_of_medals
+from U u, countries c
+where u.country_id = c.country_id;
+
+**************** RESULT ***************************************************************
+
+CREATE VIEW
+
+=============================================================================================
+
+=== 2
+
+select r.A, r.B, r.C, s.D
+from R r, S s
+where r.C = s.C or coalesce(r.C, 0) = coalesce(s.C, 0);
+
+**************** RESULT ***************************************************************
+
+     a      | b  | c  |     d      
+------------+----+----+------------
+ a3         | 30 | 30 | d1        
+ a4         |  0 |    | d2        
+(2 rows)
+
+=============================================================================================
+
+=== 3
+
+create function teammed_func() returns trigger as $teammed$
+  declare
+   rec record;
+  begin
+   for rec in select is_team_event from events where event_id = new.event_id
+    loop
+      if rec.is_team_event = 1 then
+        for rec in select country_id from players where player_id = new.player_id
+         loop
+          if not exists(select * from teammedals where country_id = rec.country_id and event_id = new.event_id)
+            insert into teammedals values (rec.country_id, new.event_id, new.medal, new.result);
+         end loop;
+      end if;
+    end loop;
+    return new;
+  end;
+$teammed$ language plpgsql;
+
+create trigger teammed after insert on results
+  for each row execute procedure teammed_func();
+
+**************** RESULT ***************************************************************
+
+CREATE FUNCTION
+CREATE TRIGGER
+
+=============================================================================================
+
+=== 4
+
+DO language plpgsql $$
+  DECLARE
+    rec record;
+    pl character(40);
+ 
+  BEGIN
+
+   FOR rec IN select nevent, array_agg(nplayer)
+   from (select e.name as nevent, p.name as nplayer
+   from events e, players p, results r
+   where r.event_id = e.event_id and r.player_id = p.player_id and olympic_id='ATH2004' and medal='GOLD' and country_id='USA'
+   order by e.name) as tab
+   group by nevent
+
+    LOOP
+      RAISE NOTICE '<medal>';
+      RAISE NOTICE '    <event>%</event>', rec.nevent;    
+      IF array_length(rec.array_agg, 1) > 1 THEN
+        RAISE NOTICE '    <players>';
+      END IF;
+      FOREACH pl IN ARRAY rec.array_agg
+        LOOP
+          RAISE NOTICE '        <player>%</player>', pl;
+        END LOOP;
+      IF array_length(rec.array_agg, 1) > 1 THEN
+        RAISE NOTICE '    </players>';
+      END IF;
+    RAISE NOTICE '</medal>';
+    END LOOP;
+  END
+$$;
+
+**************** RESULT ***************************************************************
+
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>100m Backstroke Men                     </event>
+psql:program8.sql:31: NOTICE:          <player>Aaron Peirsol                           </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>100m Backstroke Women                   </event>
+psql:program8.sql:31: NOTICE:          <player>Natalie Coughlin                        </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>100m Butterfly Men                      </event>
+psql:program8.sql:31: NOTICE:          <player>Michael Phelps                          </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>100m Hurdles Women                      </event>
+psql:program8.sql:31: NOTICE:          <player>Joanna Hayes                            </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>100m Men                                </event>
+psql:program8.sql:31: NOTICE:          <player>Justin Gatlin                           </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>200m Backstroke Men                     </event>
+psql:program8.sql:31: NOTICE:          <player>Aaron Peirsol                           </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>200m Breaststroke Women                 </event>
+psql:program8.sql:31: NOTICE:          <player>Amanda Beard                            </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>200m Butterfly Men                      </event>
+psql:program8.sql:31: NOTICE:          <player>Michael Phelps                          </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>200m Individual Medley Men              </event>
+psql:program8.sql:31: NOTICE:          <player>Michael Phelps                          </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>200m Men                                </event>
+psql:program8.sql:31: NOTICE:          <player>Shawn Crawford                          </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>400m Individual Medley Men              </event>
+psql:program8.sql:31: NOTICE:          <player>Michael Phelps                          </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>400m Men                                </event>
+psql:program8.sql:31: NOTICE:          <player>Jeremy Wariner                          </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>4x100m Medley Relay Men                 </event>
+psql:program8.sql:31: NOTICE:      <players>
+psql:program8.sql:31: NOTICE:          <player>Ian Crocker                             </player>
+psql:program8.sql:31: NOTICE:          <player>Lenny Krayzelburg                       </player>
+psql:program8.sql:31: NOTICE:          <player>Brendan Hansen                          </player>
+psql:program8.sql:31: NOTICE:          <player>Jason Lezak                             </player>
+psql:program8.sql:31: NOTICE:          <player>Michael Phelps                          </player>
+psql:program8.sql:31: NOTICE:          <player>Neil Walker                             </player>
+psql:program8.sql:31: NOTICE:          <player>Aaron Peirsol                           </player>
+psql:program8.sql:31: NOTICE:      </players>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>4x200m Freestyle Relay Men              </event>
+psql:program8.sql:31: NOTICE:      <players>
+psql:program8.sql:31: NOTICE:          <player>Ryan Lochte                             </player>
+psql:program8.sql:31: NOTICE:          <player>Scott Goldblatt                         </player>
+psql:program8.sql:31: NOTICE:          <player>Peter Vanderkaay                        </player>
+psql:program8.sql:31: NOTICE:          <player>Michael Phelps                          </player>
+psql:program8.sql:31: NOTICE:          <player>Klete Keller                            </player>
+psql:program8.sql:31: NOTICE:      </players>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>4x200m Freestyle Relay Women            </event>
+psql:program8.sql:31: NOTICE:      <players>
+psql:program8.sql:31: NOTICE:          <player>Natalie Coughlin                        </player>
+psql:program8.sql:31: NOTICE:          <player>Dana Vollmer                            </player>
+psql:program8.sql:31: NOTICE:          <player>Kaitlin Sandeno                         </player>
+psql:program8.sql:31: NOTICE:          <player>Carly Piper                             </player>
+psql:program8.sql:31: NOTICE:          <player>Lindsay Benko                           </player>
+psql:program8.sql:31: NOTICE:      </players>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>4x400m Relay Men                        </event>
+psql:program8.sql:31: NOTICE:      <players>
+psql:program8.sql:31: NOTICE:          <player>Otis Harris Jr                          </player>
+psql:program8.sql:31: NOTICE:          <player>Jeremy Wariner                          </player>
+psql:program8.sql:31: NOTICE:          <player>Darold Williamson                       </player>
+psql:program8.sql:31: NOTICE:          <player>Derrick Brew                            </player>
+psql:program8.sql:31: NOTICE:      </players>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>4x400m Relay Women                      </event>
+psql:program8.sql:31: NOTICE:      <players>
+psql:program8.sql:31: NOTICE:          <player>Sanya Richards                          </player>
+psql:program8.sql:31: NOTICE:          <player>Monique Henderson                       </player>
+psql:program8.sql:31: NOTICE:          <player>Deedee Trotter                          </player>
+psql:program8.sql:31: NOTICE:          <player>Monique Hennagan                        </player>
+psql:program8.sql:31: NOTICE:      </players>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>50m Freestyle Men                       </event>
+psql:program8.sql:31: NOTICE:          <player>Gary Hall Jr.                           </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>Long Jump Men                           </event>
+psql:program8.sql:31: NOTICE:          <player>Dwight Phillips                         </player>
+psql:program8.sql:31: NOTICE:  </medal>
+psql:program8.sql:31: NOTICE:  <medal>
+psql:program8.sql:31: NOTICE:      <event>Pole Vault Men                          </event>
+psql:program8.sql:31: NOTICE:          <player>Timothy Mack                            </player>
+psql:program8.sql:31: NOTICE:  </medal>
+DO
+
+=============================================================================================
+
